@@ -51,6 +51,8 @@ jobs:
         echo "Device Tree Branch: ${{ github.event.inputs.DEVICE_TREE_BRANCH }}"
         echo "Device Path: ${{ github.event.inputs.DEVICE_PATH }}"
         echo "Device Name: ${{ github.event.inputs.DEVICE_NAME }}"
+        echo "Common Tree URL: ${{ github.event.inputs.COMMON_TREE_URL }}"
+        echo "Common Tree Path: ${{ github.event.inputs.COMMON_PATH }}"
         echo "Makefile Name: ${{ github.event.inputs.MAKEFILE_NAME }}"
         echo "Build Target: ${{ github.event.inputs.BUILD_TARGET }}.img"
         echo "::endgroup::"
@@ -64,6 +66,7 @@ jobs:
         sudo apt update
         sudo apt -y upgrade
         sudo apt -y install gperf gcc-multilib gcc-10-multilib g++-multilib g++-10-multilib libc6-dev lib32ncurses5-dev x11proto-core-dev libx11-dev tree lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc bc ccache lib32readline-dev lib32z1-dev liblz4-tool libncurses5-dev libsdl1.2-dev libwxgtk3.0-gtk3-dev libxml2 lzop pngcrush schedtool squashfs-tools imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-10-dev python aria2
+        mkdir sources
 
     - name: Setup SSH Keys
       if: ${{ startsWith(github.event.inputs.MANIFEST_URL, 'git@github.com') }}
@@ -77,42 +80,62 @@ jobs:
       with:
         swap-size-gb: 12
 
+    - name: Download repo tool
+      run: |
+        mkdir ~/bin
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        chmod a+x ~/bin/repo
+        sudo ln -sf ~/bin/repo /usr/bin/repo
+
+    - name: Initialise repo tool
+      run: |
+        mkdir sources && cd sources
+        git config --global user.name ${{ anonymous }}
+        git config --global user.email ${{ anon@nomail.dummy }}
+        repo init --depth=1 -u ${{ github.event.inputs.MANIFEST_URL }} -b ${{ github.event.inputs.MANIFEST_BRANCH }}     
+
     - name: Setup OrangeFox with scripts
       run: |
-          git clone https://gitlab.com/OrangeFox/misc/scripts
-          cd scripts
-          sudo bash setup/android_build_env.sh
-          sudo bash setup/install_android_sdk.sh
-          cd ..
-          git clone https://gitlab.com/OrangeFox/sync.git
-          cd sync
-          ./orangefox_sync.sh --branch 12.1 $(cut -d1 ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ) --path ~/ofox
-        working-directory: ${{ github.workspace }}
+        git clone https://gitlab.com/OrangeFox/misc/scripts
+        cd scripts
+        sudo bash setup/android_build_env.sh
+        sudo bash setup/install_android_sdk.sh
+        cd ..
+        git clone https://gitlab.com/OrangeFox/sync.git
+        cd sync
+        ./orangefox_sync.sh --branch 12.1 $(cut -d1 ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ) --path ~/sources
 
     - name: Clone the device tree
-      run: git clone ${{ github.event.inputs.DEVICE_PATH }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
+      run: |
+        cd ~/sources 
+        git clone ${{ github.event.inputs.DEVICE_PATH }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
 
-    - name: Clone the common dependencies tree
-      run: git clone ${{ github.event.inputs.COMMON_PATH }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.COMMON_PATH }}
+    - name: Clone common tree
+      if: |
+        github.event.inputs.COMMON_TREE_URL != null
+        && github.event.inputs.COMMON_PATH != null
+      run: |
+        cd ~/sources
+        git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.COMMON_PATH }}
 
     - name: Sync OrangeFox manifest
       run: |
-          source build/envsetup.sh
-          export ALLOW_MISSING_DEPENDENCIES=true
-          export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
-          export LC_ALL="C"
-      working-directory: '${{ github.workspace }}/ofox'
+        cd ~/sources
+        source build/envsetup.sh
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
+        export LC_ALL="C"
 
     - name: Build OrangeFox recovery
       run: |
-         lunch twrp_${{ github.event.inputs.DEVICE_NAME }}-eng
-         mka adbd && ${{ github.event.inputs.BUILD_TARGET }}image
-      working-directory: '${{ github.workspace }}/ofox'
+       cd ~/sources
+       lunch twrp_${{ github.event.inputs.DEVICE_NAME }}-eng
+       mka adbd && ${{ github.event.inputs.BUILD_TARGET }}image
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
       with:
-        files: workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox-unofficial-${{ github.event.inputs.DEVICE_NAME }}.img
+        files: ~/sources/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox-unofficial-${{ github.event.inputs.DEVICE_NAME }}.img
         name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
         body: |
@@ -122,7 +145,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Send build
+    - name: Send build link
       run: |
         curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="Build successful for ${{ github.event.inputs.DEVICE_NAME }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
         curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ GITHUB_REPOSITORY }}/releases/tag/${{ github.run_id }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
