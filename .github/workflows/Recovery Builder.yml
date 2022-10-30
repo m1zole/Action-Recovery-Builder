@@ -1,4 +1,4 @@
-name: OrangeFox Recovery
+name: Recovery Builder
 
 on:
   workflow_dispatch:
