@@ -4,21 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       OFOX_BRANCH:
-        description: 'MANIFEST_BRANCH'
+        description: 'OrangeFox branch'
         required: true
-        default: 'ofox-12.1'
+        default: 'fox-12.1'
       DEVICE_TREE_URL:
-        description: 'DEVICE_TREE_URL'
+        description: 'Device tree sources repository URL'
         required: true
         default: 'https://github.com/crazo7924/android_device_realme_RMX3241'
       DEVICE_TREE_BRANCH:
-        description: 'DEVICE_TREE_BRANCH'
+        description: 'Device tree git-ref (branch / commit / tag)'
         required: true
-        default: 'ofox-12.1'
-      DEVICE_PATH:
-        description: 'DEVICE_PATH'
-        required: true
-        default: 'device/realme/apollob'
+        default: 'fox-12.1'
       COMMON_TREE_URL:
         description: 'COMMON_TREE_URL (if no common tree, leave blank)'
         required: false
@@ -26,22 +22,22 @@ on:
         description: 'COMMON_PATH (if no common tree, leave blank)'
         required: false
       DEVICE_NAME:
-        description: 'DEVICE_NAME'
+        description: 'Device codename'
         required: true
         default: 'apollob'
       MAKEFILE_NAME:
-        description: 'MAKEFILE_NAME'
+        description: 'Target Makefile name'
         required: true
         default: 'twrp_apollob'
       BUILD_TARGET:
-        description: 'BUILD_TARGET'
+        description: 'Target type (recovery / boot)'
         required: true
         default: 'recovery'
 
 jobs:
   build:
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - name: Display Run Parameters
       run: |
