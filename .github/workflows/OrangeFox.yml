@@ -84,7 +84,7 @@ jobs:
         mkdir sources && cd sources
         git config --global user.name anonymous
         git config --global user.email anon@nomail.dummy
-        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp -b twrp-${{ github.event.inputs.ANDROID_VERSION
+        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp -b twrp-${{ github.event.inputs.ANDROID_VERSION }}
 
     - name: Setup OrangeFox with scripts
       run: |
@@ -140,4 +140,4 @@ jobs:
     - name: Send build link
       run: |
         curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="Build successful for ${{ github.event.inputs.DEVICE_NAME }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
-        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ GITHUB_REPOSITORY }}/releases/tag/${{ github.run_id }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
+        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ github.repository }}/releases/tag/${{ github.run_id }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
