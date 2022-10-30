@@ -1,16 +1,12 @@
-name: Recovery Build
+name: OrangeFox Recovery
 
 on:
   workflow_dispatch:
     inputs:
-      MANIFEST_URL:
-        description: 'MANIFEST_URL (if using SSH keys, use git@github.com:repo URL format)'
-        required: true
-        default: 'https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git'
-      MANIFEST_BRANCH:
+      OFOX_BRANCH:
         description: 'MANIFEST_BRANCH'
         required: true
-        default: 'twrp-12.1'
+        default: 'ofox-12.1'
       DEVICE_TREE_URL:
         description: 'DEVICE_TREE_URL'
         required: true
@@ -18,7 +14,7 @@ on:
       DEVICE_TREE_BRANCH:
         description: 'DEVICE_TREE_BRANCH'
         required: true
-        default: 'android-12.1'
+        default: 'ofox-12.1'
       DEVICE_PATH:
         description: 'DEVICE_PATH'
         required: true
@@ -50,8 +46,7 @@ jobs:
     - name: Display Run Parameters
       run: |
         echo "::group::User Environment Variables"
-        echo "Manifest URL: ${{ github.event.inputs.MANIFEST_URL }}"
-        echo "Manifest Branch: ${{ github.event.inputs.MANIFEST_BRANCH }}"
+        echo "OrangeFox Branch: ${{ github.event.inputs.MANIFEST_BRANCH }}"
         echo "Device Tree URL: ${{ github.event.inputs.DEVICE_TREE_URL }}"
         echo "Device Tree Branch: ${{ github.event.inputs.DEVICE_TREE_BRANCH }}"
         echo "Device Path: ${{ github.event.inputs.DEVICE_PATH }}"
@@ -59,26 +54,16 @@ jobs:
         echo "Makefile Name: ${{ github.event.inputs.MAKEFILE_NAME }}"
         echo "Build Target: ${{ github.event.inputs.BUILD_TARGET }}.img"
         echo "::endgroup::"
- 
-    # You might want to Checkout your repo first, but not mandatory
-    - name: Check Out
-      uses: actions/checkout@v3
+
     # Cleanup The Actions Workspace Using Custom Composite Run Actions
     - name: Cleanup
       uses: rokibhasansagar/slimhub_actions@main
-      # That's it! Now use your normal steps
 
     - name: Prepare the environment
       run: |
         sudo apt update
         sudo apt -y upgrade
         sudo apt -y install gperf gcc-multilib gcc-10-multilib g++-multilib g++-10-multilib libc6-dev lib32ncurses5-dev x11proto-core-dev libx11-dev tree lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc bc ccache lib32readline-dev lib32z1-dev liblz4-tool libncurses5-dev libsdl1.2-dev libwxgtk3.0-gtk3-dev libxml2 lzop pngcrush schedtool squashfs-tools imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-10-dev python
-
-    - name: Install OpenJDK
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'zulu'
-        java-version: '8'
 
     - name: Setup SSH Keys
       if: ${{ startsWith(github.event.inputs.MANIFEST_URL, 'git@github.com') }}
@@ -87,71 +72,10 @@ jobs:
           ssh-private-key: |
               ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Set variables
-      run: |
-        echo "::set-output name=date::$(date +%F)"
-      id: var
-      
-    - name: Install repo
-      run: |
-        mkdir ~/bin
-        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-        chmod a+x ~/bin/repo
-        sudo ln -sf ~/bin/repo /usr/bin/repo
-      
-    - name: Initialize repo
-      run: |
-        mkdir workspace
-        cd workspace
-        echo "::set-output name=pwd::$(pwd)"
-        git config --global user.name ${{ github.repository_owner }}
-        git config --global user.email "noreply@localhost.dev"
-        repo init --depth=1 -u ${{ github.event.inputs.MANIFEST_URL }} -b ${{ github.event.inputs.MANIFEST_BRANCH }}
-      id: pwd
-          
-    - name: Repo Sync
-      run: |
-        repo sync -j$(nproc --all) --force-sync
-      working-directory: workspace
-      
-    - name: Clone device tree
-      run: |
-        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
-      working-directory: ${{ steps.pwd.outputs.pwd }}
-
-    - name: Clone common tree
-      if: |
-        github.event.inputs.COMMON_TREE_URL != null
-        && github.event.inputs.COMMON_PATH != null
-      run: |
-        git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.COMMON_PATH }}
-      working-directory: ${{ steps.pwd.outputs.pwd }}
-
-    - name: Check Build Tree
-      uses: haya14busa/action-cond@v1
-      id: buildtree
-      with:
-        cond: ${{ github.event.inputs.MANIFEST_BRANCH == 'twrp-11' || github.event.inputs.MANIFEST_BRANCH == 'twrp-12.1' }}
-        if_true: twrp
-        if_false: omni
-
-    - name: Sync Device Dependencies
-      run: |
-        bash ${GITHUB_WORKSPACE}/scripts/convert.sh ${{ github.event.inputs.DEVICE_PATH }}/${{ steps.buildtree.outputs.value }}.dependencies
-        repo sync -j$(nproc --all)
-      working-directory: ${{ steps.pwd.outputs.pwd }}
-      continue-on-error: true
-
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
       with:
         swap-size-gb: 12
-
-    - name: Check Build Branch
-      if: ${{ github.event.inputs.MANIFEST_BRANCH == 'twrp-12.1' }}
-      run: |
-        source build/envsetup.sh
-      working-directory: ${{ steps.pwd.outputs.pwd }}
 
     - name: Building recovery
       run: |
@@ -176,4 +100,4 @@ jobs:
     - name: Send build
       run: |
         curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="Build successful for ${{ github.event.inputs.DEVICE_NAME }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
-        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F document=@workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/${{ github.event.inputs.BUILD_TARGET }}.img https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument
+        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ GITHUB_REPOSITORY }}/releases/tag/${{ github.run_id }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
