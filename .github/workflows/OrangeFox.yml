@@ -103,10 +103,6 @@ jobs:
       run: |
         cd ~/sources
         repo sync
-        source build/envsetup.sh
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
-        export LC_ALL="C"
 
     - name: Setup OrangeFox with scripts
       run: |
@@ -118,6 +114,10 @@ jobs:
     - name: Build OrangeFox recovery
       run: |
        cd ~/sources
+       source build/envsetup.sh
+       export ALLOW_MISSING_DEPENDENCIES=true
+       export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
+       export LC_ALL="C"
        lunch twrp_${{ github.event.inputs.DEVICE_NAME }}-eng
        mka adbd && ${{ github.event.inputs.BUILD_TARGET }}image
 
