@@ -102,6 +102,7 @@ jobs:
     - name: Sync OrangeFox manifest
       run: |
         cd ~/sources
+        repo sync
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
