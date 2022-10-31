@@ -86,16 +86,10 @@ jobs:
         git config --global user.email anon@nomail.dummy
         repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp -b twrp-${{ github.event.inputs.ANDROID_VERSION }}
 
-    - name: Setup OrangeFox with scripts
-      run: |
-        git clone https://gitlab.com/OrangeFox/sync.git
-        cd sync
-        ./orangefox_sync.sh --branch ${{ github.event.inputs.ANDROID_VERSION }} --path ~/sources
-
     - name: Clone the device tree
       run: |
         cd ~/sources 
-        git clone ${{ github.event.inputs.DEVICE_PATH }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
+        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
 
     - name: Clone common tree
       if: |
@@ -112,6 +106,13 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
         export LC_ALL="C"
+
+    - name: Setup OrangeFox with scripts
+      run: |
+        cd ~
+        git clone https://gitlab.com/OrangeFox/sync.git
+        cd sync
+        ./orangefox_sync.sh --branch ${{ github.event.inputs.ANDROID_VERSION }} --path ~/sources
 
     - name: Build OrangeFox recovery
       run: |
