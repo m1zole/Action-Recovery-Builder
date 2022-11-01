@@ -124,17 +124,19 @@ jobs:
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
       with:
-        files: ~/sources/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox-unofficial-${{ github.event.inputs.DEVICE_NAME }}.img
-        name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
+        files: ~/sources/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox-*
+        name: OrangeFox-unofficial-${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
         body: |
+          Android version: ${{ github.event.inputs.ANDROID_VERSION }}
           Manifest: ${{ github.event.inputs.MANIFEST_BRANCH }}
           Device: ${{ github.event.inputs.DEVICE_NAME }}
           Target: ${{ github.event.inputs.BUILD_TARGET }}.img
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      id: uploaded
 
     - name: Send build link
       run: |
-        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="Build successful for ${{ github.event.inputs.DEVICE_NAME }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
-        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ github.repository }}/releases/tag/${{ github.run_id }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
+        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="Build successful of OrangeFox recovery for ${{ github.event.inputs.DEVICE_NAME }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
+        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ github.steps.uploaded.url }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
