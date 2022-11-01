@@ -119,7 +119,7 @@ jobs:
        export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
        export LC_ALL="C"
        lunch twrp_${{ github.event.inputs.DEVICE_NAME }}-eng
-       mka adbd && ${{ github.event.inputs.BUILD_TARGET }}image
+       mka adbd ${{ github.event.inputs.BUILD_TARGET }}image
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
