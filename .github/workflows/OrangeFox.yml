@@ -139,4 +139,4 @@ jobs:
     - name: Send build link
       run: |
         curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="Build successful of OrangeFox recovery for ${{ github.event.inputs.DEVICE_NAME }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
-        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ github.steps.uploaded.url }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
+        curl -F "chat_id=${{ secrets.CHANNEL_ID }}" -F text="${{ steps.uploaded.outputs.url }}" https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage
